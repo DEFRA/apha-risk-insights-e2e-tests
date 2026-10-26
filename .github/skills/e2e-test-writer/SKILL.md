@@ -160,7 +160,7 @@ export const { Given, When, Then } = createBdd(test)
 
 ### API scenarios
 
-- Tag the feature `@api`. Tagged scenarios auto-skip when `API_BASE_URL` is not
+- Tag the feature `@api`. Tagged scenarios auto-skip when `E2E_API_BASE_URL` is not
   configured (handled by the `skipApiWhenUnconfigured` fixture).
 - The `riskApi` client remembers the `lastResponse`, so a `When I request ...`
   step and a later `Then the response ...` step share it:

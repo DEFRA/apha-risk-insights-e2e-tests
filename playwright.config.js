@@ -5,15 +5,30 @@ const oneMinute = 60 * 1000
 
 // The frontend is the service under test. On CDP each service is reachable at
 // `https://<service>.<environment>.cdp-int.defra.cloud`. Locally and in the
-// GitHub docker-compose run the URLs are supplied through BASE_URL / API_BASE_URL.
-const { ENVIRONMENT, BASE_URL, API_BASE_URL, HTTP_PROXY, CI, DEBUG } =
+// GitHub docker-compose run the URLs are supplied through E2E_BASE_URL /
+// E2E_API_BASE_URL. Generic BASE_URL / API_BASE_URL are avoided: CDP sets its own.
+const { ENVIRONMENT, E2E_BASE_URL, E2E_API_BASE_URL, HTTP_PROXY, CI, DEBUG } =
   process.env
 
 const cdpUrl = (service) =>
   ENVIRONMENT && `https://${service}.${ENVIRONMENT}.cdp-int.defra.cloud`
 
-const baseURL = BASE_URL || cdpUrl('apha-risk-insights-frontend')
-const apiBaseURL = API_BASE_URL || cdpUrl('apha-risk-insights-backend')
+const baseURL = E2E_BASE_URL || cdpUrl('apha-risk-insights-frontend')
+const apiBaseURL = E2E_API_BASE_URL || cdpUrl('apha-risk-insights-backend')
+
+// Without a base URL every page.goto('/') fails with an unhelpful error.
+if (!baseURL) {
+  throw new Error(
+    'No base URL: set E2E_BASE_URL, or ENVIRONMENT so it can be derived for CDP'
+  )
+}
+
+// The config is re-loaded in each worker; log once from the main process.
+if (!process.env.TEST_WORKER_INDEX) {
+  process.stderr.write(
+    `[e2e] ENVIRONMENT=${ENVIRONMENT ?? '(unset)'} baseURL=${baseURL} apiBaseURL=${apiBaseURL || '(unset)'} proxy=${HTTP_PROXY ? 'yes' : 'no'}\n`
+  )
+}
 
 const proxy = HTTP_PROXY
   ? { server: HTTP_PROXY, bypass: '127.0.0.1,localhost' }

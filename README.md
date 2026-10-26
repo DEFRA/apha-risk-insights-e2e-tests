@@ -44,7 +44,7 @@ npm run test:local
 ```
 
 `test:local` targets `http://localhost:3000` (UI) and `http://localhost:3001`
-(API). The `@api` scenarios skip automatically if `API_BASE_URL` is not set.
+(API). The `@api` scenarios skip automatically if `E2E_API_BASE_URL` is not set.
 
 > **Data flow today.** The frontend serves static sample data (it does not call
 > the backend yet — see the frontend's `accessing-risk-data-through-repository`
@@ -178,7 +178,7 @@ Requirements kept from the CDP template:
 
 The base URLs are derived from the `ENVIRONMENT` variable
 (`https://apha-risk-insights-frontend.<env>.cdp-int.defra.cloud` and the backend
-equivalent), and can be overridden with `BASE_URL` / `API_BASE_URL`.
+equivalent), and can be overridden with `E2E_BASE_URL` / `E2E_API_BASE_URL`.
 
 ## BrowserStack
 

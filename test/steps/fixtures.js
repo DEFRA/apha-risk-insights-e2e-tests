@@ -11,7 +11,7 @@ import { createRiskApiClient } from '#api/risk-api.client.js'
 
 export const test = base.extend({
   // Set from playwright.config.js `use.apiBaseURL`; falls back to the env var.
-  apiBaseURL: [process.env.API_BASE_URL || '', { option: true }],
+  apiBaseURL: [process.env.E2E_API_BASE_URL || '', { option: true }],
 
   layout: async ({ page }, use) => {
     await use(createLayoutPage(page))
@@ -37,7 +37,7 @@ export const test = base.extend({
   skipApiWhenUnconfigured: [
     async ({ $tags, apiBaseURL }, use, testInfo) => {
       if ($tags.includes('@api') && !apiBaseURL) {
-        testInfo.skip(true, 'API_BASE_URL is not configured')
+        testInfo.skip(true, 'E2E_API_BASE_URL is not configured')
       }
       await use()
     },
