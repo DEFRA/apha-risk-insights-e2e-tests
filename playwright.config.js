@@ -18,9 +18,7 @@ const apiBaseURL = E2E_API_BASE_URL || cdpUrl('apha-risk-insights-backend')
 
 // Without a base URL every page.goto('/') fails with an unhelpful error.
 if (!baseURL) {
-  throw new Error(
-    'No base URL: set E2E_BASE_URL, or ENVIRONMENT so it can be derived for CDP'
-  )
+  throw new Error('No base URL: set E2E_BASE_URL, or ENVIRONMENT')
 }
 
 // The config is re-loaded in each worker; log once from the main process.
