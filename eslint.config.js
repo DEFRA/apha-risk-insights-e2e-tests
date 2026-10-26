@@ -3,16 +3,35 @@ import js from '@eslint/js'
 import globals from 'globals'
 import eslintPluginPrettier from 'eslint-plugin-prettier'
 import eslintConfigPrettier from 'eslint-config-prettier/flat'
-import { configs as wdioConfig } from 'eslint-plugin-wdio'
+import playwright from 'eslint-plugin-playwright'
 
 export default defineConfig([
   {
-    ignores: ['allure-results/', 'allure-report/', 'docker/']
+    ignores: [
+      'playwright-report/',
+      'test-results/',
+      'junit/',
+      '.features-gen/',
+      'docker/'
+    ]
   },
 
   js.configs.recommended,
 
-  wdioConfig['flat/recommended'],
+  {
+    ...playwright.configs['flat/recommended'],
+    files: ['test/**/*.js']
+  },
+
+  {
+    files: ['test/**/*.js'],
+    rules: {
+      // playwright-bdd step definitions legitimately call `expect` outside a
+      // `test()` block, and assertions live in steps rather than spec bodies.
+      'playwright/no-standalone-expect': 'off',
+      'playwright/expect-expect': 'off'
+    }
+  },
 
   {
     files: ['**/*.js'],
@@ -20,8 +39,7 @@ export default defineConfig([
       ecmaVersion: 'latest',
       sourceType: 'module',
       globals: {
-        ...globals.node,
-        ...globals.mocha
+        ...globals.node
       }
     },
     plugins: {

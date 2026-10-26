@@ -1,7 +1,9 @@
 #!/bin/sh
 
 echo "run_id: $RUN_ID"
+
 npm test
+test_exit_code=$?
 
 npm run report:publish
 publish_exit_code=$?
@@ -11,9 +13,11 @@ if [ $publish_exit_code -ne 0 ]; then
   exit $publish_exit_code
 fi
 
-# At the end of the test run, if the suite has failed we write a file called 'FAILED'
-if [ -f FAILED ]; then
+# If the suite failed, write a 'FAILED' marker file and exit non-zero so the
+# CDP portal records the run as failed.
+if [ $test_exit_code -ne 0 ]; then
   echo "test suite failed"
+  echo "$test_exit_code" > FAILED
   cat ./FAILED
   exit 1
 fi

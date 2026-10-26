@@ -1,11 +1,20 @@
 {
   "compilerOptions": {
-    "target": "es2020",
-    "baseUrl": "./",
+    "target": "es2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "checkJs": false,
     "paths": {
-      "#page-objects/*": ["./test/page-objects/*"],
-      "#components/*": ["./test/components/*"]
+      "#steps/*": ["./test/steps/*"],
+      "#pages/*": ["./test/pages/*"],
+      "#api/*": ["./test/api/*"]
     }
   },
-  "exclude": ["node_modules", "build", "docker"]
+  "exclude": [
+    "node_modules",
+    "playwright-report",
+    "test-results",
+    ".features-gen",
+    "docker"
+  ]
 }
