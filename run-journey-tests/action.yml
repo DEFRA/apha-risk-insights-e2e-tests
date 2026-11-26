@@ -138,8 +138,10 @@ runs:
       if: always()
       shell: bash
       working-directory: apha-incubator-core
+      # Best effort: this runs even when an earlier step failed before the
+      # stack started, so it must not add a second error of its own
       run: |
-        docker compose -f compose.yaml -f compose.ci.yaml ps --all
+        docker compose -f compose.yaml -f compose.ci.yaml ps --all || true
         docker compose -f compose.yaml -f compose.ci.yaml logs --no-color --timestamps > ../service-logs.txt || true
 
     - name: Upload Playwright report
