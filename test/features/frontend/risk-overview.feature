@@ -8,5 +8,5 @@ Feature: Risk overview
   Scenario: Opening a disease from its card
     Given I am on the risk overview page
     When I open the risk detail for "African Swine Fever"
-    Then the page URL ends with "/risk/african-swine-fever"
+    Then the page URL ends with "/risk/asf"
     And I see the heading "African Swine Fever"

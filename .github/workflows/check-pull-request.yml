@@ -28,9 +28,11 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
 
-# Uncomment this to run the tests in your test suite
-#  tests:
-#    name: Run Journey Tests
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: DEFRA/cdp-node-journey-test-suite-template/run-journey-tests@main
+  journey-tests:
+    name: Run Journey Tests
+    runs-on: ubuntu-latest
+    steps:
+      # Check out this repo so the action below runs from the pull request,
+      # not main. The action checks out every repo it needs itself
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./run-journey-tests

@@ -1,5 +1,5 @@
 /**
- * A disease risk detail page (`/risk/{slug}`).
+ * A disease risk detail page (`/risk/{diseaseCode}`).
  */
 export function createRiskDetailPage(page) {
   const backLink = page.getByRole('link', { name: 'Back to overview' })
@@ -14,8 +14,8 @@ export function createRiskDetailPage(page) {
     historyChart: page.getByRole('img', { name: 'Risk level over time' }),
     historyTable: page.getByRole('table'),
 
-    async openBySlug(slug) {
-      await page.goto(`/risk/${slug}`)
+    async openByDiseaseCode(diseaseCode) {
+      await page.goto(`/risk/${diseaseCode}`)
     },
 
     async goBack() {

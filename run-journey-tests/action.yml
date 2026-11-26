@@ -1,58 +1,145 @@
 name: Run Journey Tests on GitHub
-description: Starts the services with docker compose and runs the Playwright BDD suite
+description: >
+  Starts every APHA Risk Insights service with apha-incubator-core, built from
+  source, then runs the Playwright BDD suite against it.
+
+  The repo that calls this action is tested at the ref that triggered the run
+  (e.g. the pull request); every other repo is tested at main. Each repo is
+  checked out into its own folder under the workspace, so the calling job does
+  not need to check anything out first.
 
 inputs:
-  apha-risk-insights-backend:
-    description: Backend image tag to test (defaults to latest)
+  core-ref:
+    description: apha-incubator-core ref. Defaults to the triggering ref when called from core, else main
     required: false
-  apha-risk-insights-frontend:
-    description: Frontend image tag to test (defaults to latest)
+  backend-ref:
+    description: apha-risk-insights-backend ref. Defaults to the triggering ref when called from the backend, else main
     required: false
+  frontend-ref:
+    description: apha-risk-insights-frontend ref. Defaults to the triggering ref when called from the frontend, else main
+    required: false
+  ingestion-ref:
+    description: apha-insights-ingestion ref. Defaults to the triggering ref when called from ingestion, else main
+    required: false
+  backoffice-ref:
+    description: apha-insights-backoffice ref. Defaults to the triggering ref when called from the back office, else main
+    required: false
+  e2e-ref:
+    description: apha-risk-insights-e2e-tests ref. Defaults to the triggering ref when called from the e2e repo, else main
+    required: false
+  playwright-args:
+    description: Extra arguments for `playwright test`, e.g. `--grep @smoke`
+    required: false
+    default: ''
+  artifact-name:
+    description: Prefix for uploaded artefacts. Set it if more than one job in a run uses this action
+    required: false
+    default: journey-tests
 
 runs:
-  using: "composite"
+  using: composite
   steps:
-    - uses: actions/checkout@v4
+    # Each repo is checked out as a sibling under the workspace, the layout
+    # apha-incubator-core expects (SERVICES_DIR defaults to ..)
+    - name: Check out apha-incubator-core
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        repository: DEFRA/apha-incubator-core
+        ref: ${{ inputs.core-ref || (github.event.repository.name == 'apha-incubator-core' && github.ref) || 'main' }}
+        path: apha-incubator-core
+
+    - name: Check out apha-risk-insights-backend
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        repository: DEFRA/apha-risk-insights-backend
+        ref: ${{ inputs.backend-ref || (github.event.repository.name == 'apha-risk-insights-backend' && github.ref) || 'main' }}
+        path: apha-risk-insights-backend
+
+    - name: Check out apha-risk-insights-frontend
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        repository: DEFRA/apha-risk-insights-frontend
+        ref: ${{ inputs.frontend-ref || (github.event.repository.name == 'apha-risk-insights-frontend' && github.ref) || 'main' }}
+        path: apha-risk-insights-frontend
+
+    - name: Check out apha-insights-ingestion
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        repository: DEFRA/apha-insights-ingestion
+        ref: ${{ inputs.ingestion-ref || (github.event.repository.name == 'apha-insights-ingestion' && github.ref) || 'main' }}
+        path: apha-insights-ingestion
+
+    - name: Check out apha-insights-backoffice
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        repository: DEFRA/apha-insights-backoffice
+        ref: ${{ inputs.backoffice-ref || (github.event.repository.name == 'apha-insights-backoffice' && github.ref) || 'main' }}
+        path: apha-insights-backoffice
+
+    - name: Check out apha-risk-insights-e2e-tests
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: DEFRA/apha-risk-insights-e2e-tests
+        ref: ${{ inputs.e2e-ref || (github.event.repository.name == 'apha-risk-insights-e2e-tests' && github.ref) || 'main' }}
+        path: apha-risk-insights-e2e-tests
 
-    - name: Docker Login
+    - name: Docker login
       uses: DEFRA/cdp-build-action/docker-login@main
 
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
-        node-version-file: .nvmrc
+        node-version-file: apha-risk-insights-e2e-tests/.nvmrc
         cache: npm
-    - name: Setup the tests
-      run: npm ci
+        cache-dependency-path: apha-risk-insights-e2e-tests/package-lock.json
+
+    - name: Install the tests
       shell: bash
-    - name: Install Playwright browsers
-      run: npx playwright install --with-deps chromium
-      shell: bash
-    - name: Start docker compose
-      shell: bash
+      working-directory: apha-risk-insights-e2e-tests
       run: |
-          APHA_RISK_INSIGHTS_FRONTEND=${{inputs.apha-risk-insights-frontend}} \
-          APHA_RISK_INSIGHTS_BACKEND=${{inputs.apha-risk-insights-backend}} \
-          docker compose up --wait --wait-timeout 300 -d --quiet-pull
+        npm ci
+        npx playwright install --with-deps chromium
+
+    - name: Start the services
+      shell: bash
+      working-directory: apha-incubator-core
+      run: ./scripts/start.sh --ci
+
+    - name: Load test data
+      shell: bash
+      working-directory: apha-risk-insights-e2e-tests
+      run: npm run seed
+
     - name: Run the tests
       shell: bash
-      run: npm run test:github
-    - name: debug
+      working-directory: apha-risk-insights-e2e-tests
+      env:
+        PLAYWRIGHT_ARGS: ${{ inputs.playwright-args }}
+      # PLAYWRIGHT_ARGS is left unquoted so it splits into separate arguments
+      run: npm run test:github -- $PLAYWRIGHT_ARGS
+
+    - name: Collect service logs
       if: always()
-      run: |
-        docker compose logs > logs.txt
-        docker ps
       shell: bash
+      working-directory: apha-incubator-core
+      run: |
+        docker compose -f compose.yaml -f compose.ci.yaml ps --all
+        docker compose -f compose.yaml -f compose.ci.yaml logs --no-color --timestamps > ../service-logs.txt || true
+
     - name: Upload Playwright report
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
-        name: playwright-report
-        path: ./playwright-report
-    - name: Upload docker compose logs
+        name: ${{ inputs.artifact-name }}-report
+        path: |
+          apha-risk-insights-e2e-tests/playwright-report
+          apha-risk-insights-e2e-tests/test-results
+          apha-risk-insights-e2e-tests/junit
+        if-no-files-found: ignore
+
+    - name: Upload service logs
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
-        name: docker-compose-logs
-        path: ./logs.txt
+        name: ${{ inputs.artifact-name }}-service-logs
+        path: service-logs.txt
+        if-no-files-found: ignore

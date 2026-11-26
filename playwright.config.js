@@ -3,18 +3,29 @@ import { defineBddConfig } from 'playwright-bdd'
 
 const oneMinute = 60 * 1000
 
-// The frontend is the service under test. On CDP each service is reachable at
-// `https://<service>.<environment>.cdp-int.defra.cloud`. Locally and in the
-// GitHub docker-compose run the URLs are supplied through E2E_BASE_URL /
-// E2E_API_BASE_URL. Generic BASE_URL / API_BASE_URL are avoided: CDP sets its own.
-const { ENVIRONMENT, E2E_BASE_URL, E2E_API_BASE_URL, HTTP_PROXY, CI, DEBUG } =
-  process.env
+// The frontend is the main service under test; the backend API and the back
+// office have their own base URLs. On CDP each service is reachable at
+// `https://<service>.<environment>.cdp-int.defra.cloud`. Locally and on GitHub
+// (services run by apha-incubator-core) the URLs are supplied through
+// E2E_BASE_URL / E2E_API_BASE_URL / E2E_BACKOFFICE_BASE_URL. Generic BASE_URL /
+// API_BASE_URL are avoided: CDP sets its own.
+const {
+  ENVIRONMENT,
+  E2E_BASE_URL,
+  E2E_API_BASE_URL,
+  E2E_BACKOFFICE_BASE_URL,
+  HTTP_PROXY,
+  CI,
+  DEBUG
+} = process.env
 
 const cdpUrl = (service) =>
   ENVIRONMENT && `https://${service}.${ENVIRONMENT}.cdp-int.defra.cloud`
 
 const baseURL = E2E_BASE_URL || cdpUrl('apha-risk-insights-frontend')
 const apiBaseURL = E2E_API_BASE_URL || cdpUrl('apha-risk-insights-backend')
+const backofficeBaseURL =
+  E2E_BACKOFFICE_BASE_URL || cdpUrl('apha-insights-backoffice')
 
 // Without a base URL every page.goto('/') fails with an unhelpful error.
 if (!baseURL) {
@@ -24,7 +35,7 @@ if (!baseURL) {
 // The config is re-loaded in each worker; log once from the main process.
 if (!process.env.TEST_WORKER_INDEX) {
   process.stderr.write(
-    `[e2e] ENVIRONMENT=${ENVIRONMENT ?? '(unset)'} baseURL=${baseURL} apiBaseURL=${apiBaseURL || '(unset)'} proxy=${HTTP_PROXY ? 'yes' : 'no'}\n`
+    `[e2e] ENVIRONMENT=${ENVIRONMENT ?? '(unset)'} baseURL=${baseURL} apiBaseURL=${apiBaseURL || '(unset)'} backofficeBaseURL=${backofficeBaseURL || '(unset)'} proxy=${HTTP_PROXY ? 'yes' : 'no'}\n`
   )
 }
 
@@ -59,6 +70,8 @@ export default defineConfig({
     baseURL,
     // Exposed to the API client fixture so backend steps can target the API.
     apiBaseURL,
+    // Exposed to the back office page objects, which navigate by absolute URL.
+    backofficeBaseURL,
     proxy,
     ignoreHTTPSErrors: true,
     actionTimeout: 10 * 1000,
