@@ -83,7 +83,24 @@ runs:
         ref: ${{ inputs.e2e-ref || (github.event.repository.name == 'apha-risk-insights-e2e-tests' && github.ref) || 'main' }}
         path: apha-risk-insights-e2e-tests
 
+    # Logging in to Docker Hub avoids its rate limits on base image pulls. CDP's
+    # login assumes the repo's github-<repo>-build-role through OIDC, which
+    # needs `permissions: id-token: write` on the calling job and a CDP build
+    # role for the repo (apha-incubator-core has none). Without either, carry
+    # on with anonymous pulls rather than fail the run.
+    - name: Check for an OIDC token
+      id: oidc
+      shell: bash
+      run: |
+        if [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+          echo "available=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "::notice::No id-token permission, so pulling from Docker Hub anonymously"
+        fi
+
     - name: Docker login
+      if: steps.oidc.outputs.available == 'true'
+      continue-on-error: true
       uses: DEFRA/cdp-build-action/docker-login@main
 
     - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
