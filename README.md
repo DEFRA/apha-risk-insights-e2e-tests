@@ -167,8 +167,10 @@ The [run-journey-tests](run-journey-tests/action.yml) composite action:
    The repo that called the action is checked out at the exact commit that
    triggered the run: for a pull request, its merge with `main`. Every other
    repo is checked out at `main`
-2. starts the stack with `npm run start:ci` in core: each service's production
-   image built from that checkout
+2. starts the stack with `npm run start:ci` in core. Services checked out at
+   `main` use the production image CDP published from `main`
+   (`defradigital/<service>:latest`); only the rest, normally just the service
+   under test, are built from their checkout
 3. loads the test data with `npm run seed` and runs `npm run test:github`
 4. uploads the Playwright report, traces and the service logs as artefacts
 
