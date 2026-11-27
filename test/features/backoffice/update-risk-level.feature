@@ -25,12 +25,11 @@ Feature: Update risk level
       | Bluetongue                        | Very low       |
     When I submit my answers
     Then I see the heading "Submission received"
+    # Submitted changes are not stored or shown on the home page until the
+    # backend has an endpoint for them (back office ADR: reading risk data
+    # from the backend API)
     When I follow the "Home" link
-    And I view the risk level changes for "African swine fever"
-    Then the latest update for "African swine fever" shows:
-      | Risk level | High                                |
-      | Change     | Increase                            |
-      | Comment    | New outbreaks reported near borders |
+    Then I see the heading "IDM Insights"
 
   Scenario: Only the chosen diseases are asked about
     When I choose to update these diseases:
