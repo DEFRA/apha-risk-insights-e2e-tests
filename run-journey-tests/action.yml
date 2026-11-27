@@ -39,48 +39,79 @@ inputs:
 runs:
   using: composite
   steps:
+    # Each repo is tested at its ref input if given, else at the triggering
+    # commit if it triggered the run, else at main
+    - name: Work out what to test
+      id: refs
+      shell: bash
+      env:
+        CORE_REF: ${{ inputs.core-ref || (github.event.repository.name == 'apha-incubator-core' && github.sha) || 'main' }}
+        BACKEND_REF: ${{ inputs.backend-ref || (github.event.repository.name == 'apha-risk-insights-backend' && github.sha) || 'main' }}
+        FRONTEND_REF: ${{ inputs.frontend-ref || (github.event.repository.name == 'apha-risk-insights-frontend' && github.sha) || 'main' }}
+        INGESTION_REF: ${{ inputs.ingestion-ref || (github.event.repository.name == 'apha-insights-ingestion' && github.sha) || 'main' }}
+        BACKOFFICE_REF: ${{ inputs.backoffice-ref || (github.event.repository.name == 'apha-insights-backoffice' && github.sha) || 'main' }}
+        E2E_REF: ${{ inputs.e2e-ref || (github.event.repository.name == 'apha-risk-insights-e2e-tests' && github.sha) || 'main' }}
+      run: |
+        {
+          echo "core=$CORE_REF"
+          echo "backend=$BACKEND_REF"
+          echo "frontend=$FRONTEND_REF"
+          echo "ingestion=$INGESTION_REF"
+          echo "backoffice=$BACKOFFICE_REF"
+          echo "e2e=$E2E_REF"
+        } >> "$GITHUB_OUTPUT"
+
+        # Services at main use the image CDP published from main; only the
+        # rest are built from their checkout
+        published=()
+        [ "$BACKEND_REF" = main ] && published+=(apha-risk-insights-backend)
+        [ "$FRONTEND_REF" = main ] && published+=(apha-risk-insights-frontend)
+        [ "$INGESTION_REF" = main ] && published+=(apha-insights-ingestion)
+        [ "$BACKOFFICE_REF" = main ] && published+=(apha-insights-backoffice)
+        echo "published=$(IFS=,; echo "${published[*]-}")" >> "$GITHUB_OUTPUT"
+
     # Each repo is checked out as a sibling under the workspace, the layout
     # apha-incubator-core expects (SERVICES_DIR defaults to ..)
     - name: Check out apha-incubator-core
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: DEFRA/apha-incubator-core
-        ref: ${{ inputs.core-ref || (github.event.repository.name == 'apha-incubator-core' && github.sha) || 'main' }}
+        ref: ${{ steps.refs.outputs.core }}
         path: apha-incubator-core
 
     - name: Check out apha-risk-insights-backend
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: DEFRA/apha-risk-insights-backend
-        ref: ${{ inputs.backend-ref || (github.event.repository.name == 'apha-risk-insights-backend' && github.sha) || 'main' }}
+        ref: ${{ steps.refs.outputs.backend }}
         path: apha-risk-insights-backend
 
     - name: Check out apha-risk-insights-frontend
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: DEFRA/apha-risk-insights-frontend
-        ref: ${{ inputs.frontend-ref || (github.event.repository.name == 'apha-risk-insights-frontend' && github.sha) || 'main' }}
+        ref: ${{ steps.refs.outputs.frontend }}
         path: apha-risk-insights-frontend
 
     - name: Check out apha-insights-ingestion
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: DEFRA/apha-insights-ingestion
-        ref: ${{ inputs.ingestion-ref || (github.event.repository.name == 'apha-insights-ingestion' && github.sha) || 'main' }}
+        ref: ${{ steps.refs.outputs.ingestion }}
         path: apha-insights-ingestion
 
     - name: Check out apha-insights-backoffice
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: DEFRA/apha-insights-backoffice
-        ref: ${{ inputs.backoffice-ref || (github.event.repository.name == 'apha-insights-backoffice' && github.sha) || 'main' }}
+        ref: ${{ steps.refs.outputs.backoffice }}
         path: apha-insights-backoffice
 
     - name: Check out apha-risk-insights-e2e-tests
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: DEFRA/apha-risk-insights-e2e-tests
-        ref: ${{ inputs.e2e-ref || (github.event.repository.name == 'apha-risk-insights-e2e-tests' && github.sha) || 'main' }}
+        ref: ${{ steps.refs.outputs.e2e }}
         path: apha-risk-insights-e2e-tests
 
     # Logging in to Docker Hub avoids its rate limits on base image pulls. CDP's
@@ -119,7 +150,14 @@ runs:
     - name: Start the services
       shell: bash
       working-directory: apha-incubator-core
-      run: ./scripts/start.sh --ci
+      env:
+        PUBLISHED: ${{ steps.refs.outputs.published }}
+      run: |
+        if [ -n "$PUBLISHED" ]; then
+          ./scripts/start.sh --ci "--published=$PUBLISHED"
+        else
+          ./scripts/start.sh --ci
+        fi
 
     - name: Load test data
       shell: bash
