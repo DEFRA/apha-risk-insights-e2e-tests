@@ -3,29 +3,29 @@ description: >
   Starts every APHA Risk Insights service with apha-incubator-core, built from
   source, then runs the Playwright BDD suite against it.
 
-  The repo that calls this action is tested at the ref that triggered the run
-  (e.g. the pull request); every other repo is tested at main. Each repo is
-  checked out into its own folder under the workspace, so the calling job does
-  not need to check anything out first.
+  The repo that calls this action is tested at the exact commit that triggered
+  the run (for a pull request, its merge with main); every other repo is tested
+  at main. Each repo is checked out into its own folder under the workspace, so
+  the calling job does not need to check anything out first.
 
 inputs:
   core-ref:
-    description: apha-incubator-core ref. Defaults to the triggering ref when called from core, else main
+    description: apha-incubator-core ref. Defaults to the triggering commit when called from core, else main
     required: false
   backend-ref:
-    description: apha-risk-insights-backend ref. Defaults to the triggering ref when called from the backend, else main
+    description: apha-risk-insights-backend ref. Defaults to the triggering commit when called from the backend, else main
     required: false
   frontend-ref:
-    description: apha-risk-insights-frontend ref. Defaults to the triggering ref when called from the frontend, else main
+    description: apha-risk-insights-frontend ref. Defaults to the triggering commit when called from the frontend, else main
     required: false
   ingestion-ref:
-    description: apha-insights-ingestion ref. Defaults to the triggering ref when called from ingestion, else main
+    description: apha-insights-ingestion ref. Defaults to the triggering commit when called from ingestion, else main
     required: false
   backoffice-ref:
-    description: apha-insights-backoffice ref. Defaults to the triggering ref when called from the back office, else main
+    description: apha-insights-backoffice ref. Defaults to the triggering commit when called from the back office, else main
     required: false
   e2e-ref:
-    description: apha-risk-insights-e2e-tests ref. Defaults to the triggering ref when called from the e2e repo, else main
+    description: apha-risk-insights-e2e-tests ref. Defaults to the triggering commit when called from the e2e repo, else main
     required: false
   playwright-args:
     description: Extra arguments for `playwright test`, e.g. `--grep @smoke`
@@ -45,42 +45,42 @@ runs:
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: DEFRA/apha-incubator-core
-        ref: ${{ inputs.core-ref || (github.event.repository.name == 'apha-incubator-core' && github.ref) || 'main' }}
+        ref: ${{ inputs.core-ref || (github.event.repository.name == 'apha-incubator-core' && github.sha) || 'main' }}
         path: apha-incubator-core
 
     - name: Check out apha-risk-insights-backend
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: DEFRA/apha-risk-insights-backend
-        ref: ${{ inputs.backend-ref || (github.event.repository.name == 'apha-risk-insights-backend' && github.ref) || 'main' }}
+        ref: ${{ inputs.backend-ref || (github.event.repository.name == 'apha-risk-insights-backend' && github.sha) || 'main' }}
         path: apha-risk-insights-backend
 
     - name: Check out apha-risk-insights-frontend
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: DEFRA/apha-risk-insights-frontend
-        ref: ${{ inputs.frontend-ref || (github.event.repository.name == 'apha-risk-insights-frontend' && github.ref) || 'main' }}
+        ref: ${{ inputs.frontend-ref || (github.event.repository.name == 'apha-risk-insights-frontend' && github.sha) || 'main' }}
         path: apha-risk-insights-frontend
 
     - name: Check out apha-insights-ingestion
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: DEFRA/apha-insights-ingestion
-        ref: ${{ inputs.ingestion-ref || (github.event.repository.name == 'apha-insights-ingestion' && github.ref) || 'main' }}
+        ref: ${{ inputs.ingestion-ref || (github.event.repository.name == 'apha-insights-ingestion' && github.sha) || 'main' }}
         path: apha-insights-ingestion
 
     - name: Check out apha-insights-backoffice
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: DEFRA/apha-insights-backoffice
-        ref: ${{ inputs.backoffice-ref || (github.event.repository.name == 'apha-insights-backoffice' && github.ref) || 'main' }}
+        ref: ${{ inputs.backoffice-ref || (github.event.repository.name == 'apha-insights-backoffice' && github.sha) || 'main' }}
         path: apha-insights-backoffice
 
     - name: Check out apha-risk-insights-e2e-tests
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: DEFRA/apha-risk-insights-e2e-tests
-        ref: ${{ inputs.e2e-ref || (github.event.repository.name == 'apha-risk-insights-e2e-tests' && github.ref) || 'main' }}
+        ref: ${{ inputs.e2e-ref || (github.event.repository.name == 'apha-risk-insights-e2e-tests' && github.sha) || 'main' }}
         path: apha-risk-insights-e2e-tests
 
     # Logging in to Docker Hub avoids its rate limits on base image pulls. CDP's
@@ -101,7 +101,7 @@ runs:
     - name: Docker login
       if: steps.oidc.outputs.available == 'true'
       continue-on-error: true
-      uses: DEFRA/cdp-build-action/docker-login@main
+      uses: DEFRA/cdp-build-action/docker-login@5e3632e25c7d4c3d514da45acaa149fd4c193640 # main
 
     - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:

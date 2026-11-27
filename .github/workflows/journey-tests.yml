@@ -23,5 +23,14 @@ jobs:
       id-token: write
     steps:
       - uses: DEFRA/apha-risk-insights-e2e-tests/run-journey-tests@main
+        # Pin every repo to main. Otherwise the action tests the triggering
+        # repo at the triggering commit, which for a workflow_call from
+        # another repo's pull request would be that pull request.
         with:
+          core-ref: main
+          backend-ref: main
+          frontend-ref: main
+          ingestion-ref: main
+          backoffice-ref: main
+          e2e-ref: main
           playwright-args: ${{ inputs.playwright-args }}

@@ -164,8 +164,9 @@ npm run report
 The [run-journey-tests](run-journey-tests/action.yml) composite action:
 
 1. checks out apha-incubator-core, every service and this repo side by side.
-   The repo that called the action is checked out at the ref that triggered
-   the run, e.g. the pull request. Every other repo is checked out at `main`
+   The repo that called the action is checked out at the exact commit that
+   triggered the run: for a pull request, its merge with `main`. Every other
+   repo is checked out at `main`
 2. starts the stack with `npm run start:ci` in core: each service's production
    image built from that checkout
 3. loads the test data with `npm run seed` and runs `npm run test:github`
@@ -178,9 +179,17 @@ checkout:
 journey-tests:
   name: Run Journey Tests
   runs-on: ubuntu-latest
+  permissions:
+    contents: read
+    id-token: write
   steps:
-    - uses: DEFRA/apha-risk-insights-e2e-tests/run-journey-tests@main
+    - uses: DEFRA/apha-risk-insights-e2e-tests/run-journey-tests@<commit SHA> # main
 ```
+
+Pin the action to a commit on `main`, as with the other actions, and update the
+SHA to pick up changes. `id-token: write` lets it log in to Docker Hub through
+the repo's CDP build role, avoiding Docker Hub's rate limits. Without it, or
+in a repo with no CDP build role, it pulls anonymously instead.
 
 Inputs (all optional):
 
