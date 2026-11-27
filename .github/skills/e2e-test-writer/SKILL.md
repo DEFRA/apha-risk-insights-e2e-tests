@@ -16,7 +16,7 @@ HTML/JUnit reporters, BrowserStack and CDP integration all keep working.
 1. **Features describe behaviour, never mechanics.** `When I open the risk
 detail for "Bluetongue"`, never `When I click .app-risk-card a`.
 2. **No selectors in `.feature` files or `*.steps.js`.** Selectors live only in
-   `test/pages/*.page.js` (UI) and `test/api/*.client.js` (API).
+   `test/pages/**/*.page.js` (UI) and `test/api/*.client.js` (API).
 3. **Steps are thin.** A step calls a page-object method and/or asserts with
    Playwright's web-first `expect`. No business logic in steps.
 4. **Reuse step wording.** Prefer existing steps (e.g. `Then I see the heading
@@ -58,15 +58,18 @@ Tips:
 
 ```
 test/
-  features/              # Gherkin — the behaviour
-    *.feature
-    api/*.feature        # tagged @api
-  steps/                 # step definitions (thin glue)
+  features/              # Gherkin — the behaviour, one folder per service under test
+    frontend/*.feature   # the public frontend
+    backend/*.feature    # the backend API, tagged @api
+    backoffice/*.feature # the back office, tagged @backoffice
+  steps/                 # step definitions (thin glue), same folders as features/
     fixtures.js          # base test + page-object/API fixtures + Given/When/Then
-    *.steps.js
-    api/*.steps.js
+    common/*.steps.js    # steps used by more than one service
+    frontend/ backend/ backoffice/
   pages/                 # Page Objects — the ONLY place UI selectors live
-    *.page.js
+    frontend/*.page.js
+    backoffice/*.page.js # take the back office base URL and navigate by absolute URL
+    common/*.page.js     # shared across services, e.g. the layout
   api/                   # API client — the ONLY place API paths live
     risk-api.client.js
 ```
@@ -79,12 +82,14 @@ Import aliases (from `package.json` `imports`): `#steps/*`, `#pages/*`, `#api/*`
 ## Workflow to add a test
 
 1. **Read the app first.** Find the real heading text, link text, `data-testid`s,
-   route paths and slug rules in the frontend/backend. Never guess copy or
+   route paths and URL rules (e.g. disease pages use the lowercase disease code) in the frontend/backend. Never guess copy or
    selectors — assert what the app actually renders.
 2. **Write the scenario** in a `.feature` using existing step wording where you
    can.
 3. **Add selectors** to the relevant page object (or a new one) — not the step.
 4. **Add/extend step definitions** that call page-object methods and assert.
+   Put them in the folder for the service under test; move a step to `common/`
+   only once a second service needs it.
 5. **Register new page objects/clients as fixtures** in `test/steps/fixtures.js`.
 6. **Run** `npx bddgen` then the suite.
 
@@ -98,7 +103,7 @@ Feature: Risk overview
   Scenario: Opening a disease from its card
     Given I am on the risk overview page
     When I open the risk detail for "African Swine Fever"
-    Then the page URL ends with "/risk/african-swine-fever"
+    Then the page URL ends with "/risk/asf"
     And I see the heading "African Swine Fever"
 ```
 
@@ -147,7 +152,7 @@ Then('I see at least one disease risk card', async ({ riskOverviewPage }) => {
 ```js
 // test/steps/fixtures.js
 import { test as base, createBdd } from 'playwright-bdd'
-import { RiskOverviewPage } from '#pages/risk-overview.page.js'
+import { RiskOverviewPage } from '#pages/frontend/risk-overview.page.js'
 
 export const test = base.extend({
   riskOverviewPage: async ({ page }, use) => {
@@ -200,11 +205,12 @@ Then('the response status is {int}', async ({ riskApi }, status) => {
 - Duplicate step text differing only by keyword (Given vs Then) — causes an
   ambiguous/duplicate step error.
 - `sleep` / `waitForTimeout` / fixed delays — rely on web-first auto-waiting.
-- Hard-coded copy or slugs that were guessed rather than read from the app.
+- Hard-coded copy or URLs that were guessed rather than read from the app.
 - Reaching for `getByTestId` or CSS when a role locator would work — roles
   first (see [Locators: role first](#locators-role-first)).
 
 ## Before you finish
 
-Run `npm run lint`, `npm run format:check`, then `npm run test:local` (with the
-frontend and backend running locally) to confirm the new scenarios pass.
+Run `npm run lint`, `npm run format:check`, then `npm run test:local` to confirm
+the new scenarios pass. Start the services first with `npm start` (or
+`npm run start:ci`) in apha-incubator-core, then `npm run seed` here.

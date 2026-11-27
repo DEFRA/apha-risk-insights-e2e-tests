@@ -1,15 +1,36 @@
 name: Run Journey Tests on GitHub
 
-permissions:
-  checks: write
-  pull-requests: write
-
+# Runs the whole suite against main of every service. Start it by hand, or call
+# it from another workflow, e.g. on a schedule.
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      playwright-args:
+        description: Extra arguments for `playwright test`, e.g. `--grep @smoke`
+        type: string
+        required: false
+        default: ''
+
 jobs:
-  build:
+  journey-tests:
     name: Run Journey Tests
     runs-on: ubuntu-latest
+    # id-token lets the journey tests log in to Docker Hub through this repo's
+    # CDP build role, avoiding Docker Hub's rate limits on anonymous pulls
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: DEFRA/apha-risk-insights-e2e-tests/run-journey-tests@main
+        # Pin every repo to main. Otherwise the action tests the triggering
+        # repo at the triggering commit, which for a workflow_call from
+        # another repo's pull request would be that pull request.
+        with:
+          core-ref: main
+          backend-ref: main
+          frontend-ref: main
+          ingestion-ref: main
+          backoffice-ref: main
+          e2e-ref: main
+          playwright-args: ${{ inputs.playwright-args }}

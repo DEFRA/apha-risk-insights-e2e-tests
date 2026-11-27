@@ -1,9 +1,9 @@
-// Seeds the backend's `disease_risks` collection so the e2e API journeys run
-// against real data. Documents mirror the frontend sample data and conform to
-// the backend's $jsonSchema validator (snake_case fields, BSON dates).
+// Test data for the backend's `disease_risks` collection, so the @api journeys
+// run against known records. Documents mirror the frontend sample data and must
+// pass the backend's $jsonSchema validator (snake_case fields, BSON dates).
 //
-// Runs on first Mongo start up (docker-entrypoint-initdb.d) before the backend
-// applies its validator; the backend's later collMod keeps these documents.
+// Loaded into the running stack by `npm run seed` (bin/seed.sh). It replaces
+// the whole collection, so it is safe to rerun.
 
 db = db.getSiblingDB('apha-risk-insights-backend')
 

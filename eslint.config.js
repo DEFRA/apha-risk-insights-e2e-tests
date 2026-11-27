@@ -12,7 +12,7 @@ export default defineConfig([
       'test-results/',
       'junit/',
       '.features-gen/',
-      'docker/'
+      'seed/'
     ]
   },
 
